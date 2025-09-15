@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coronel Reciclado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Enlaces a librerías y fuentes externas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- Estilos CSS personalizados -->
+    <style>
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: #0f172a;
+            color: #f9fafb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            background-image: url('img/back-b.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .app-container {
+            max-width: 95%;
+            width: 500px;
+            margin: 1rem;
+        }
+        .main-content-card {
+            background-color: rgba(31, 41, 55, 0.9);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            backdrop-filter: blur(8px);
+            border: 2px solid #374151;
+        }
+        .screen-container {
+            transition: all 0.5s ease-in-out;
+            transform: translateX(0);
+        }
+        .loading-container, .message-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        button {
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border-radius: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        button:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        .btn-gradient {
+            background-image: linear-gradient(45deg, #10b981, #14b8a6);
+        }
+        .btn-green {
+            background-image: linear-gradient(45deg, #22c55e, #10b981);
+        }
+        .btn-purple {
+            background-image: linear-gradient(45deg, #9b6bd7, #ab00de);
+        }
+        .pulse-fast {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        canvas {
+            border-radius: 1rem;
+            touch-action: none;
+            background-color: transparent;
+            background-image: url('img/ruinas.png');
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+            width: 100%;
+            height: auto;
+            border: 2px solid #4b5563;
+        }
+        .game-info {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(31, 41, 55, 0.8);
+            padding: 8px 15px;
+            border-radius: 12px;
+            font-weight: bold;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #4b5563;
+        }
+        @keyframes correctPlacement {
+            0% { box-shadow: 0 0 0 0px rgba(76, 209, 55, 0.7); }
+            100% { box-shadow: 0 0 0 10px rgba(76, 209, 55, 0); }
+        }
+        @keyframes incorrectPlacement {
+            0% { background-color: #ef4444; }
+            100% { background-color: #e2e8f0; }
+        }
+        .flash-red {
+            animation: incorrectPlacement 0.5s forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 p-4">
+
+<div id="app" class="app-container">
+    <div id="content" class="screen-container flex flex-col items-center">
+        <!-- Contenido dinámico insertado por JavaScript -->
+    </div>
+</div>
+
+<script>
+    // --- Configuración de la aplicación ---
+    // Usamos un ID local para el modo offline
+    let userId = localStorage.getItem('userId') || crypto.randomUUID();
+    localStorage.setItem('userId', userId);
+    
+    // Simulación de datos para misiones y usuarios en modo offline
+    let missions = [
+        { id: 'mission_1', title: 'Recicla una botella de plástico', description: 'Esta misión se completa al alcanzar 50 puntos en el juego.', points: 100 },
+        { id: 'mission_2', title: 'Desecha papel y cartón', description: 'Completa esta misión al llegar a 150 puntos en el juego.', points: 150 }
+    ];
+    let users = [{ uid: userId, points: parseInt(localStorage.getItem('userPoints') || '0', 10) }];
+    let currentGame = null;
+    const contentDiv = document.getElementById('content');
+    
+    // Funciones que manejan el modo offline
+    const savePoints = (pointsToAdd) => {
+        let currentPoints = parseInt(localStorage.getItem('userPoints') || '0', 10);
+        const newPoints = currentPoints + pointsToAdd;
+        localStorage.setItem('userPoints', newPoints.toString());
+        users[0].points = newPoints;
+        return newPoints;
+    };
+    
+    const getPoints = () => {
+        return parseInt(localStorage.getItem('userPoints') || '0', 10);
+    };
+
+    const getMissions = () => {
+        return missions;
+    };
+    
+    const getLeaderboard = () => {
+        return users;
+    };
+
+    const completeMission = (missionId, points) => {
+        try {
+            const newTotalPoints = savePoints(points);
+            renderMessageScreen(`¡Misión completada! Ganaste ${points} puntos. Tu nuevo total es ${newTotalPoints}.`, 'success');
+        } catch (e) {
+            console.error("Error al completar la misión:", e);
+            renderMessageScreen("Error al completar la misión.", 'error');
+        }
+    };
+
+    // --- Funciones de utilidad ---
+    const renderScreen = (htmlContent) => {
+        contentDiv.innerHTML = htmlContent;
+    };
+
+    const navigateTo = (screen) => {
+        if (currentGame) {
+            currentGame.stop();
+            currentGame = null;
+        }
+        switch (screen) {
+            case 'home':
+                renderHomeScreen();
+                break;
+            case 'missions':
+                renderMissionsScreen();
+                break;
+            case 'leaderboard':
+                renderLeaderboardScreen();
+                break;
+            case 'game':
+                // Redirigimos al archivo del juego
+                window.location.href = 'juego.html';
+                break;
+            case 'loading':
+            default:
+                renderLoadingScreen();
+                break;
+        }
+    };
+    
+    // --- Funciones de renderizado de pantalla ---
+    const renderLoadingScreen = () => {
+        contentDiv.dataset.screen = 'loading';
+        renderScreen(`
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p class="mt-4 text-gray-400">Cargando...</p>
+            </div>
+        `);
+    };
+
+    const renderMessageScreen = (message, type = 'info') => {
+        const bgColor = type === 'success' ? 'bg-green-700' : (type === 'error' ? 'bg-red-700' : 'bg-blue-700');
+        const textColor = type === 'success' ? 'text-green-100' : (type === 'error' ? 'text-red-100' : 'text-blue-100');
+        contentDiv.dataset.screen = 'message';
+        renderScreen(`
+            <div class="message-container p-6 rounded-lg ${bgColor} text-center">
+                <p class="font-bold text-lg ${textColor}">${message}</p>
+                <button onclick="navigateTo('home')" class="mt-4 px-6 py-2 bg-gray-500 text-white rounded-full">Volver a inicio</button>
+            </div>
+        `);
+    };
+
+    const renderHomeScreen = () => {
+        const userPoints = getPoints();
+        const userRank = '-'; 
+        
+        contentDiv.dataset.screen = 'home';
+        renderScreen(`
+            <div class="main-content-card flex flex-col items-center justify-center p-8 text-center animate-fadeIn">
+                <div class="flex flex-col items-center mb-6">
+                    <div class="w-full max-w-xs mb-4">
+                        <img src="img/coronel-reciclado-logo.png" alt="Coronel Reciclado Logo" class="w-full h-auto" />
+                    </div>
+                    <div class="flex items-center justify-center gap-4">
+                        <p class="text-lg text-gray-400">¡Hola, soldado del planeta!</p>
+                        <img src="img/general.png" alt="General" class="w-16 h-16 rounded-full border-2 border-gray-500" />
+                    </div>
+                </div>
+                
+                <div class="bg-gray-800 p-6 rounded-2xl w-full shadow-inner mb-6 border border-gray-700">
+                    <div class="flex flex-col items-center justify-center space-y-4 md:space-x-8 md:space-y-0 md:flex-row">
+                        <div class="text-center">
+                            <i class="fas fa-trophy text-4xl text-yellow-400"></i>
+                            <h3 class="text-2xl font-bold mt-2">${userPoints}</h3>
+                            <p class="text-gray-400">Puntos</p>
+                        </div>
+                        <div class="text-center">
+                            <i class="fas fa-ranking-star text-4xl text-purple-400"></i>
+                            <h3 class="text-2xl font-bold mt-2">${userRank}</h3>
+                            <p class="text-gray-400">Posición</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                    <button onclick="navigateTo('missions')" class="btn-purple text-white py-4 px-6 rounded-xl font-bold text-xl">
+                        <i class="fas fa-list-check mr-2"></i> Misiones
+                    </button>
+                    <button onclick="navigateTo('game')" class="btn-green text-white py-4 px-6 rounded-xl font-bold text-xl">
+                        <i class="fas fa-gamepad mr-2"></i> Jugar
+                    </button>
+                    <button onclick="navigateTo('leaderboard')" class="col-span-1 sm:col-span-2 bg-purple-600 hover:bg-purple-700 text-white py-4 px-6 rounded-xl font-bold text-xl">
+                        <i class="fas fa-users-viewfinder mr-2"></i> Clasificación
+                    </button>
+                </div>
+                <p class="mt-4 text-xs text-gray-600">ID de usuario: ${userId}</p>
+            </div>
+        `);
+    };
+
+    const renderMissionsScreen = () => {
+        contentDiv.dataset.screen = 'missions';
+        let missionsListHtml = getMissions().map(mission => `
+            <div class="bg-gray-800 p-4 rounded-xl shadow-sm mb-4 border border-gray-700">
+                <h3 class="font-bold text-lg text-white">${mission.title}</h3>
+                <p class="text-sm text-gray-400 mt-1">${mission.description}</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-sm font-semibold text-yellow-400"><i class="fas fa-coins mr-1"></i> ${mission.points} Puntos</span>
+                    <button onclick="completeMission('${mission.id}', ${mission.points})" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full text-sm">
+                        Completar Misión
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        renderScreen(`
+            <div class="main-content-card flex flex-col items-center justify-center p-8 text-center animate-fadeIn">
+                <h2 class="text-3xl font-bold text-green-400 mb-6">Misiones</h2>
+                <div class="w-full">
+                    ${missionsListHtml}
+                </div>
+                <button onclick="navigateTo('home')" class="mt-6 px-6 py-2 bg-gray-600 text-white rounded-full font-bold">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver
+                </button>
+            </div>
+        `);
+    };
+
+    const renderLeaderboardScreen = () => {
+        contentDiv.dataset.screen = 'leaderboard';
+        const leaderboard = getLeaderboard().sort((a, b) => b.points - a.points);
+        const userPoints = getPoints();
+        const userRank = leaderboard.findIndex(u => u.uid === userId) + 1;
+        
+        let leaderboardHtml = leaderboard.map((user, index) => `
+            <li class="flex justify-between items-center py-3 px-4 rounded-lg mb-2 ${user.uid === userId ? 'bg-yellow-800 font-bold' : 'bg-gray-800'} text-gray-200 border border-gray-700">
+                <span class="text-gray-400">${index + 1}.</span>
+                <span class="flex-1 ml-4 truncate text-white">${user.uid}</span>
+                <span class="font-semibold text-green-400">${user.points} pts</span>
+            </li>
+        `).join('');
+
+        renderScreen(`
+            <div class="main-content-card flex flex-col items-center justify-center p-8 text-center animate-fadeIn">
+                <h2 class="text-3xl font-bold text-purple-400 mb-6">Clasificación</h2>
+                <div class="bg-gray-800 p-6 rounded-2xl w-full shadow-inner mb-6 border border-gray-700">
+                    <h3 class="text-xl font-bold mb-2">Tu Posición</h3>
+                    <p class="text-4xl font-extrabold text-blue-400">${userRank > 0 ? userRank : '-'}</p>
+                </div>
+                <ul class="w-full">
+                    ${leaderboardHtml}
+                </ul>
+                <button onclick="navigateTo('home')" class="mt-6 px-6 py-2 bg-gray-600 text-white rounded-full font-bold">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver
+                </button>
+            </div>
+        `);
+    };
+
+    const initApp = () => {
+        // Redirige directamente a la pantalla principal
+        renderHomeScreen();
+    };
+
+    window.navigateTo = navigateTo;
+    window.completeMission = completeMission;
+    initApp();
+</script>
+</body>
+</html>
