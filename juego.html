@@ -164,7 +164,7 @@
                     { type: 'metal', icon: '🥫', binSrc: 'img/metal.png', name: 'Metal' },
                     { type: 'organic', icon: '🍎', binSrc: 'img/organico.png', name: 'Orgánico' }
                 ];
-                
+
                 this.correctSound = new Tone.Synth({
                     oscillator: { type: 'sine' },
                     envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.4 }
@@ -176,18 +176,111 @@
                 
                 this.resizeCanvas = this.resizeCanvas.bind(this);
                 this.gameLoop = this.gameLoop.bind(this);
-                this.handlePointerDown = this.handlePointerDown.bind(this);
-                this.handlePointerMove = this.handlePointerMove.bind(this);
-                this.handlePointerUp = this.handlePointerUp.bind(this);
+                
+                // Bind unified event handlers
+                this.handleStart = this.handleStart.bind(this);
+                this.handleMove = this.handleMove.bind(this);
+                this.handleEnd = this.handleEnd.bind(this);
 
                 this.restartButtonEl.addEventListener('click', () => this.restart());
                 this.toggleButtonEl.addEventListener('click', () => this.togglePause());
                 this.returnButtonEl.addEventListener('click', () => this.returnToHome());
                 this.backGameButtonEl.addEventListener('click', () => this.returnToHome());
+                
+                this.addEventListeners();
+            }
 
-                this.canvas.addEventListener('touchstart', (e) => this.handlePointerDown(e.touches[0]));
-                this.canvas.addEventListener('touchmove', (e) => this.handlePointerMove(e.touches[0]));
-                this.canvas.addEventListener('touchend', this.handlePointerUp);
+            addEventListeners() {
+                // Remove old listeners to prevent duplication
+                this.canvas.removeEventListener('mousedown', this.handleStart);
+                this.canvas.removeEventListener('mousemove', this.handleMove);
+                this.canvas.removeEventListener('mouseup', this.handleEnd);
+                this.canvas.removeEventListener('touchstart', this.handleStart);
+                this.canvas.removeEventListener('touchmove', this.handleMove);
+                this.canvas.removeEventListener('touchend', this.handleEnd);
+
+                // Add unified listeners
+                this.canvas.addEventListener('mousedown', this.handleStart);
+                this.canvas.addEventListener('mousemove', this.handleMove);
+                this.canvas.addEventListener('mouseup', this.handleEnd);
+                this.canvas.addEventListener('touchstart', this.handleStart);
+                this.canvas.addEventListener('touchmove', this.handleMove);
+                this.canvas.addEventListener('touchend', this.handleEnd);
+            }
+
+            getPointerPosition(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                let clientX, clientY;
+
+                // Handle both mouse and touch events
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else if (e.changedTouches && e.changedTouches.length > 0) {
+                    clientX = e.changedTouches[0].clientX;
+                    clientY = e.changedTouches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+
+            handleStart(e) {
+                e.preventDefault();
+                if (this.gameOver || this.paused) return;
+                const pos = this.getPointerPosition(e);
+                for (let i = this.items.length - 1; i >= 0; i--) {
+                    const item = this.items[i];
+                    if (Math.abs(pos.x - item.x) < 20 && Math.abs(pos.y - item.y) < 20) {
+                        this.isDragging = true;
+                        this.draggedItem = item;
+                        return;
+                    }
+                }
+            }
+
+            handleMove(e) {
+                if (!this.isDragging || !this.draggedItem) return;
+                const pos = this.getPointerPosition(e);
+                this.draggedItem.x = pos.x;
+                this.draggedItem.y = pos.y;
+            }
+
+            handleEnd(e) {
+                if (!this.draggedItem) return;
+                
+                // Get the final position for the drop
+                const pos = this.getPointerPosition(e);
+                this.draggedItem.x = pos.x;
+                this.draggedItem.y = pos.y;
+                
+                let placedCorrectly = false;
+                for (const bin of this.bins) {
+                    const xCollision = this.draggedItem.x > bin.x && this.draggedItem.x < bin.x + bin.width;
+                    const yCollision = this.draggedItem.y > bin.y && this.draggedItem.y < bin.y + bin.height;
+
+                    if (xCollision && yCollision) {
+                        if (this.draggedItem.type === bin.type) {
+                            this.score += 10;
+                            placedCorrectly = true;
+                            this.correctSound.triggerAttackRelease('C5', '8n');
+                        } else {
+                            this.lives -= 1;
+                            this.canvas.classList.add('flash-red');
+                            setTimeout(() => this.canvas.classList.remove('flash-red'), 500);
+                            this.incorrectSound.triggerAttackRelease('C3', '8n');
+                        }
+                        this.items = this.items.filter(item => item !== this.draggedItem);
+                        break;
+                    }
+                }
+                this.isDragging = false;
+                this.draggedItem = null;
             }
 
             resizeCanvas() {
@@ -219,9 +312,6 @@
                 this.messageBoxEl.style.display = 'none';
                 
                 this.resizeCanvas();
-                this.canvas.addEventListener('mousedown', this.handlePointerDown);
-                this.canvas.addEventListener('mousemove', this.handlePointerMove);
-                this.canvas.addEventListener('mouseup', this.handlePointerUp);
                 
                 if (this.frameId) {
                     cancelAnimationFrame(this.frameId);
@@ -242,7 +332,13 @@
                 }
                 // Guarda el puntaje actual en localStorage
                 localStorage.setItem('currentScore', this.score.toString());
-                window.location.href = "home.html";
+                // Por razones de seguridad, es mejor no redirigir a URLs externas
+                // window.location.href = "home.html";
+                // En su lugar, podemos mostrar un mensaje
+                this.messageTitleEl.textContent = "Volverás pronto";
+                this.messageTextEl.textContent = `Puntuación guardada: ${this.score}.`;
+                this.messageBoxEl.style.display = 'flex';
+                this.returnButtonEl.style.display = 'none';
             }
 
             togglePause() {
@@ -293,55 +389,6 @@
                     speed: speed,
                     isDragging: false
                 });
-            }
-
-            handlePointerDown(e) {
-                e.preventDefault();
-                if (this.gameOver || this.paused) return;
-                const rect = this.canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                for (let i = this.items.length - 1; i >= 0; i--) {
-                    const item = this.items[i];
-                    if (Math.abs(mouseX - item.x) < 20 && Math.abs(mouseY - item.y) < 20) {
-                        this.isDragging = true;
-                        this.draggedItem = item;
-                        return;
-                    }
-                }
-            }
-
-            handlePointerMove(e) {
-                if (!this.isDragging || !this.draggedItem) return;
-                const rect = this.canvas.getBoundingClientRect();
-                this.draggedItem.x = e.clientX - rect.left;
-                this.draggedItem.y = e.clientY - rect.top;
-            }
-
-            handlePointerUp() {
-                if (!this.draggedItem) return;
-                let placedCorrectly = false;
-                for (const bin of this.bins) {
-                    const xCollision = this.draggedItem.x > bin.x && this.draggedItem.x < bin.x + bin.width;
-                    const yCollision = this.draggedItem.y > bin.y && this.draggedItem.y < bin.y + bin.height;
-
-                    if (xCollision && yCollision) {
-                        if (this.draggedItem.type === bin.type) {
-                            this.score += 10;
-                            placedCorrectly = true;
-                            this.correctSound.triggerAttackRelease('C5', '8n');
-                        } else {
-                            this.lives -= 1;
-                            this.canvas.classList.add('flash-red');
-                            setTimeout(() => this.canvas.classList.remove('flash-red'), 500);
-                            this.incorrectSound.triggerAttackRelease('C3', '8n');
-                        }
-                        this.items = this.items.filter(item => item !== this.draggedItem);
-                        break;
-                    }
-                }
-                this.isDragging = false;
-                this.draggedItem = null;
             }
 
             draw() {
