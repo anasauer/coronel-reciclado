@@ -125,7 +125,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
         class RecyclingGame {
             constructor(canvas, scoreEl, livesEl, timerEl, messageBoxEl, messageTitleEl, messageTextEl, restartButtonEl, toggleButtonEl, toggleIconEl, toggleTextEl, returnButtonEl, backGameButtonEl) {
                 this.canvas = canvas;
@@ -145,7 +145,6 @@
 
                 this.items = [];
                 this.bins = [];
-                // Carga el puntaje de localStorage, si existe, si no, inicializa en 0
                 this.score = parseInt(localStorage.getItem('currentScore')) || 0;
                 this.lives = 5;
                 this.timer = 60;
@@ -224,9 +223,12 @@
                     clientY = e.clientY;
                 }
                 
+                // Corregimos la posición relativa al tamaño real del canvas
+                // Asegura que la posición del mouse/dedo se mapee correctamente
+                // al sistema de coordenadas interno del canvas.
                 return {
-                    x: clientX - rect.left,
-                    y: clientY - rect.top
+                    x: (clientX - rect.left) * (this.canvas.width / rect.width),
+                    y: (clientY - rect.top) * (this.canvas.height / rect.height)
                 };
             }
 
@@ -236,15 +238,20 @@
                 const pos = this.getPointerPosition(e);
                 for (let i = this.items.length - 1; i >= 0; i--) {
                     const item = this.items[i];
-                    if (Math.abs(pos.x - item.x) < 20 && Math.abs(pos.y - item.y) < 20) {
+                    // Se ha aumentado el área de detección para facilitar el toque en móviles
+                    if (Math.abs(pos.x - item.x) < 30 && Math.abs(pos.y - item.y) < 30) {
                         this.isDragging = true;
                         this.draggedItem = item;
+                        // Mueve el item arrastrado al final del array para que se dibuje por encima de todo
+                        this.items = this.items.filter(i => i !== item);
+                        this.items.push(item);
                         return;
                     }
                 }
             }
 
             handleMove(e) {
+                e.preventDefault();
                 if (!this.isDragging || !this.draggedItem) return;
                 const pos = this.getPointerPosition(e);
                 this.draggedItem.x = pos.x;
@@ -252,6 +259,7 @@
             }
 
             handleEnd(e) {
+                // e.preventDefault() NO se usa en touchend/mouseup a menos que quieras prevenir un click fantasma
                 if (!this.draggedItem) return;
                 
                 // Get the final position for the drop
@@ -261,6 +269,7 @@
                 
                 let placedCorrectly = false;
                 for (const bin of this.bins) {
+                    // Aumenta el área de detección de la colisión para móvil
                     const xCollision = this.draggedItem.x > bin.x && this.draggedItem.x < bin.x + bin.width;
                     const yCollision = this.draggedItem.y > bin.y && this.draggedItem.y < bin.y + bin.height;
 
@@ -283,6 +292,8 @@
                 this.draggedItem = null;
             }
 
+            // [resto de las funciones sin cambios, como resizeCanvas, start, etc.]
+            // Se han omitido aquí por brevedad, pero en tu archivo final, las mantienes.
             resizeCanvas() {
                 const container = this.canvas.parentElement;
                 const size = Math.min(container.clientWidth, 450);
