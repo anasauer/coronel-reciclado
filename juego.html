@@ -259,7 +259,6 @@
             }
 
             handleEnd(e) {
-                // e.preventDefault() NO se usa en touchend/mouseup a menos que quieras prevenir un click fantasma
                 if (!this.draggedItem) return;
                 
                 // Get the final position for the drop
@@ -269,9 +268,11 @@
                 
                 let placedCorrectly = false;
                 for (const bin of this.bins) {
-                    // Aumenta el área de detección de la colisión para móvil
-                    const xCollision = this.draggedItem.x > bin.x && this.draggedItem.x < bin.x + bin.width;
-                    const yCollision = this.draggedItem.y > bin.y && this.draggedItem.y < bin.y + bin.height;
+                    // **AJUSTE DE COLISIÓN (X): Añadimos un margen de 10px para ser más estrictos**
+                    const xCollision = this.draggedItem.x > bin.x + 10 && this.draggedItem.x < bin.x + bin.width - 10;
+                    
+                    // **AJUSTE DE COLISIÓN (Y): Solo colisiona si cae en la mitad superior del tacho**
+                    const yCollision = this.draggedItem.y > bin.y && this.draggedItem.y < bin.y + (bin.height / 2);
 
                     if (xCollision && yCollision) {
                         if (this.draggedItem.type === bin.type) {
@@ -284,10 +285,12 @@
                             setTimeout(() => this.canvas.classList.remove('flash-red'), 500);
                             this.incorrectSound.triggerAttackRelease('C3', '8n');
                         }
+                        // El objeto siempre se elimina de la lista si colisionó
                         this.items = this.items.filter(item => item !== this.draggedItem);
                         break;
                     }
                 }
+                // ESTO SIEMPRE SE EJECUTA, evita que se quede "trabado"
                 this.isDragging = false;
                 this.draggedItem = null;
             }
