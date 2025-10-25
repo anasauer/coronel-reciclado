@@ -355,17 +355,32 @@
             // Volvemos a inicializar los tachos para re-calcular su posición y cantidad
             this.isMobile = this.canvas.width < 600; // La lógica de isMobile se mantiene aquí para el constructor
             
-            // Re-ejecutamos la lógica del constructor para re-evaluar itemTypes y bins
-            this.constructor(
-                this.canvas, this.scoreEl, this.livesEl, this.timerEl, 
-                this.messageBoxEl, this.messageTitleEl, this.messageTextEl, 
-                this.restartButtonEl, this.toggleButtonEl, this.toggleIconEl, 
-                this.toggleTextEl, this.returnButtonEl, this.backGameButtonEl
-            );
+          // Nuevo método resizeCanvas() para sustituir
+resizeCanvas() {
+    // El canvas tendrá como máximo el 95% del ancho de la ventana o 600px
+    const newWidth = Math.min(window.innerWidth * 0.95, 600); 
+    this.canvas.style.maxWidth = `${newWidth}px`;
+    
+    // Asignamos un tamaño interno fijo para el renderizado
+    this.canvas.width = 450; 
+    this.canvas.height = 450 * 0.8; // Ratio 450x360 
+    
+    // RE-EVALUAMOS el modo y tipos de tachos (Lógica de adaptación)
+    const newIsMobile = this.canvas.width < 600;
 
-            this.initBins();
-            this.draw();
+    // Solo cambiamos los tipos de ítems si el modo (móvil/escritorio) ha cambiado
+    if (this.isMobile !== newIsMobile) {
+        this.isMobile = newIsMobile;
+        if (this.isMobile) {
+            this.itemTypes = this.allItemTypes.filter(t => ['Papel', 'Plástico', 'Vidrio'].includes(t.name));
+        } else {
+            this.itemTypes = this.allItemTypes.filter(t => ['Papel', 'Plástico', 'Vidrio', 'Orgánico'].includes(t.name));
         }
+    }
+    
+    this.initBins();
+    this.draw();
+}
 
         spawnItem() {
             // Usamos itemTypes, que ya está filtrado por la lógica de adaptación
@@ -531,6 +546,9 @@
 
         // Inicializamos el juego. Los tamaños y tachos se ajustarán en game.start()
         const game = new RecyclingGame(canvas, gameScoreEl, gameLivesEl, gameTimerEl, messageBoxEl, messageTitleEl, messageTextEl, restartButtonEl, toggleButtonEl, toggleIconEl, toggleTextEl, returnButtonEl, backGameButtonEl);
+        
+        // ⚠️ ¡NUEVA LÍNEA! Asegura la inicialización de los botes antes de empezar.
+        game.initBins();
         
         // El listener de resize llama a game.resizeCanvas, que es la lógica adaptativa
         window.addEventListener('resize', game.resizeCanvas);
