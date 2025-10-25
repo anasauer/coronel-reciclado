@@ -2,13 +2,22 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Juego de Reciclado</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
+        canvas {
+    /* El canvas se hace flexible */
+    max-width: 100%;
+    /* Asegura que no haya márgenes o rellenos extra */
+    display: block;
+    margin: 0 auto;
+    padding: 0;
+}
+
         body {
             font-family: 'Raleway', sans-serif;
             background-image: url('img/ruinas.png');
@@ -22,6 +31,9 @@
             min-height: 100vh;
             text-align: center;
             padding: 20px;
+            width: 100vw; 
+            height: 100vh;
+            overflow-x: hidden;
         }
         .game-wrapper {
             background-color: rgba(17, 24, 39, 0.7);
@@ -125,380 +137,433 @@
         </div>
     </div>
 
-   <script>
-        class RecyclingGame {
-            constructor(canvas, scoreEl, livesEl, timerEl, messageBoxEl, messageTitleEl, messageTextEl, restartButtonEl, toggleButtonEl, toggleIconEl, toggleTextEl, returnButtonEl, backGameButtonEl) {
-                this.canvas = canvas;
-                this.ctx = this.canvas.getContext('2d');
-                this.scoreEl = scoreEl;
-                this.livesEl = livesEl;
-                this.timerEl = timerEl;
-                this.messageBoxEl = messageBoxEl;
-                this.messageTitleEl = messageTitleEl;
-                this.messageTextEl = messageTextEl;
-                this.restartButtonEl = restartButtonEl;
-                this.toggleButtonEl = toggleButtonEl;
-                this.toggleIconEl = toggleIconEl;
-                this.toggleTextEl = toggleTextEl;
-                this.returnButtonEl = returnButtonEl; 
-                this.backGameButtonEl = backGameButtonEl;
+   ¡Entendido! Vamos a implementar las correcciones de diseño adaptativo (responsive) y la mejora en la lógica del constructor y window.onload para que el juego se ajuste automáticamente en móviles (reduciendo a 3 tachos) y se vea bien en escritorio.
 
-                this.items = [];
-                this.bins = [];
-                this.score = parseInt(localStorage.getItem('currentScore')) || 0;
-                this.lives = 5;
-                this.timer = 60;
-                this.gameOver = false;
-                this.isDragging = false;
-                this.draggedItem = null;
-                this.frameId = null;
-                this.spawnTimer = 0;
-                this.lastTime = 0;
-                this.paused = false;
+Aquí tienes el código JavaScript completo y corregido que debes usar para reemplazar el contenido de tu etiqueta <script> al final del HTML.
 
-                this.itemTypes = [
-                    { type: 'glass', icon: '🍾', binSrc: 'img/vidrio.png', name: 'Vidrio' },
-                    { type: 'paper', icon: '📄', binSrc: 'img/papel.png', name: 'Papel' },
-                    { type: 'plastic', icon: '🧴', binSrc: 'img/plastico.png', name: 'Plástico' },
-                    { type: 'metal', icon: '🥫', binSrc: 'img/metal.png', name: 'Metal' },
-                    { type: 'organic', icon: '🍎', binSrc: 'img/organico.png', name: 'Orgánico' }
-                ];
+Código JavaScript Adaptativo Corregido
+Este código incluye:
 
-                this.correctSound = new Tone.Synth({
-                    oscillator: { type: 'sine' },
-                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.4 }
-                }).toDestination();
-                this.incorrectSound = new Tone.Synth({
-                    oscillator: { type: 'square' },
-                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.01, release: 0.2 }
-                }).toDestination();
-                
-                this.resizeCanvas = this.resizeCanvas.bind(this);
-                this.gameLoop = this.gameLoop.bind(this);
-                
-                // Bind unified event handlers
-                this.handleStart = this.handleStart.bind(this);
-                this.handleMove = this.handleMove.bind(this);
-                this.handleEnd = this.handleEnd.bind(this);
+Lógica window.onload y resizeCanvas adaptativa: Ajusta el tamaño real del canvas en función del ancho de la ventana.
 
-                this.restartButtonEl.addEventListener('click', () => this.restart());
-                this.toggleButtonEl.addEventListener('click', () => this.togglePause());
-                this.returnButtonEl.addEventListener('click', () => this.returnToHome());
-                this.backGameButtonEl.addEventListener('click', () => this.returnToHome());
-                
-                this.addEventListeners();
-            }
+Lógica del constructor adaptativa: Detecta si es móvil (this.canvas.width < 600) y ajusta el número de tachos y tipos de ítems (this.bins, this.itemTypes) a 3, para que no estén apretados.
 
-            addEventListeners() {
-                // Remove old listeners to prevent duplication
-                this.canvas.removeEventListener('mousedown', this.handleStart);
-                this.canvas.removeEventListener('mousemove', this.handleMove);
-                this.canvas.removeEventListener('mouseup', this.handleEnd);
-                this.canvas.removeEventListener('touchstart', this.handleStart);
-                this.canvas.removeEventListener('touchmove', this.handleMove);
-                this.canvas.removeEventListener('touchend', this.handleEnd);
+Lógica initBins dinámica: Calcula el tamaño y la posición de los tachos basándose en cuántos haya para que se distribuyan uniformemente.
 
-                // Add unified listeners
-                this.canvas.addEventListener('mousedown', this.handleStart);
-                this.canvas.addEventListener('mousemove', this.handleMove);
-                this.canvas.addEventListener('mouseup', this.handleEnd);
-                this.canvas.addEventListener('touchstart', this.handleStart);
-                this.canvas.addEventListener('touchmove', this.handleMove);
-                this.canvas.addEventListener('touchend', this.handleEnd);
-            }
+Reemplaza TODO el contenido de tu etiqueta <script> (desde class RecyclingGame { ... } hasta el final) con este nuevo código:
 
-            getPointerPosition(e) {
-                const rect = this.canvas.getBoundingClientRect();
-                let clientX, clientY;
+JavaScript
 
-                // Handle both mouse and touch events
-                if (e.touches && e.touches.length > 0) {
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                } else if (e.changedTouches && e.changedTouches.length > 0) {
-                    clientX = e.changedTouches[0].clientX;
-                    clientY = e.changedTouches[0].clientY;
-                } else {
-                    clientX = e.clientX;
-                    clientY = e.clientY;
-                }
-                
-                // Corregimos la posición relativa al tamaño real del canvas
-                // Asegura que la posición del mouse/dedo se mapee correctamente
-                // al sistema de coordenadas interno del canvas.
-                return {
-                    x: (clientX - rect.left) * (this.canvas.width / rect.width),
-                    y: (clientY - rect.top) * (this.canvas.height / rect.height)
-                };
-            }
+<script>
+    class RecyclingGame {
+        constructor(canvas, scoreEl, livesEl, timerEl, messageBoxEl, messageTitleEl, messageTextEl, restartButtonEl, toggleButtonEl, toggleIconEl, toggleTextEl, returnButtonEl, backGameButtonEl) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.scoreEl = scoreEl;
+            this.livesEl = livesEl;
+            this.timerEl = timerEl;
+            this.messageBoxEl = messageBoxEl;
+            this.messageTitleEl = messageTitleEl;
+            this.messageTextEl = messageTextEl;
+            this.restartButtonEl = restartButtonEl;
+            this.toggleButtonEl = toggleButtonEl;
+            this.toggleIconEl = toggleIconEl;
+            this.toggleTextEl = toggleTextEl;
+            this.returnButtonEl = returnButtonEl;
+            this.backGameButtonEl = backGameButtonEl;
 
-            handleStart(e) {
-                e.preventDefault();
-                if (this.gameOver || this.paused) return;
-                const pos = this.getPointerPosition(e);
-                for (let i = this.items.length - 1; i >= 0; i--) {
-                    const item = this.items[i];
-                    // Se ha aumentado el área de detección para facilitar el toque en móviles
-                    if (Math.abs(pos.x - item.x) < 30 && Math.abs(pos.y - item.y) < 30) {
-                        this.isDragging = true;
-                        this.draggedItem = item;
-                        // Mueve el item arrastrado al final del array para que se dibuje por encima de todo
-                        this.items = this.items.filter(i => i !== item);
-                        this.items.push(item);
-                        return;
-                    }
-                }
-            }
+            this.items = [];
+            this.bins = [];
+            this.score = parseInt(localStorage.getItem('currentScore')) || 0;
+            this.lives = 5;
+            this.timer = 60;
+            this.gameOver = false;
+            this.isDragging = false;
+            this.draggedItem = null;
+            this.frameId = null;
+            this.spawnTimer = 0;
+            this.lastTime = 0;
+            this.paused = false;
 
-            handleMove(e) {
-                e.preventDefault();
-                if (!this.isDragging || !this.draggedItem) return;
-                const pos = this.getPointerPosition(e);
-                this.draggedItem.x = pos.x;
-                this.draggedItem.y = pos.y;
-            }
+            // ** LÓGICA DE ADAPTACIÓN: Tipos de ítems y tachos **
+            this.allItemTypes = [
+                { type: 'Vidrio', icon: '🍾', binSrc: 'img/vidrio.png', name: 'Vidrio' },
+                { type: 'Papel', icon: '📄', binSrc: 'img/papel.png', name: 'Papel' },
+                { type: 'Plástico', icon: '🧴', binSrc: 'img/plastico.png', name: 'Plástico' },
+                { type: 'Orgánico', icon: '🍎', binSrc: 'img/organico.png', name: 'Orgánico' },
+                { type: 'Metal', icon: '🥫', binSrc: 'img/metal.png', name: 'Metal' } // Añadimos Metal por si quieres usar 5
+            ];
 
-            handleEnd(e) {
-                if (!this.draggedItem) return;
-                
-                // Get the final position for the drop
-                const pos = this.getPointerPosition(e);
-                this.draggedItem.x = pos.x;
-                this.draggedItem.y = pos.y;
-                
-                let placedCorrectly = false;
-                for (const bin of this.bins) {
-                    // **AJUSTE DE COLISIÓN (X): Añadimos un margen de 10px para ser más estrictos**
-                    const xCollision = this.draggedItem.x > bin.x + 10 && this.draggedItem.x < bin.x + bin.width - 10;
-                    
-                    // **AJUSTE DE COLISIÓN (Y): Solo colisiona si cae en la mitad superior del tacho**
-                    const yCollision = this.draggedItem.y > bin.y && this.draggedItem.y < bin.y + (bin.height / 2);
+            // Filtramos los tipos de ítems que usaremos.
+            // Si el ancho del canvas es pequeño (típicamente móvil), usamos menos tipos.
+            this.isMobile = this.canvas.width < 600;
 
-                    if (xCollision && yCollision) {
-                        if (this.draggedItem.type === bin.type) {
-                            this.score += 10;
-                            placedCorrectly = true;
-                            this.correctSound.triggerAttackRelease('C5', '8n');
-                        } else {
-                            this.lives -= 1;
-                            this.canvas.classList.add('flash-red');
-                            setTimeout(() => this.canvas.classList.remove('flash-red'), 500);
-                            this.incorrectSound.triggerAttackRelease('C3', '8n');
-                        }
-                        // El objeto siempre se elimina de la lista si colisionó
-                        this.items = this.items.filter(item => item !== this.draggedItem);
-                        break;
-                    }
-                }
-                // ESTO SIEMPRE SE EJECUTA, evita que se quede "trabado"
-                this.isDragging = false;
-                this.draggedItem = null;
-            }
+            if (this.isMobile) {
+                // Modo Móvil: Usamos 3 tachos (Papel, Plástico, Vidrio)
+                this.itemTypes = this.allItemTypes.filter(t => ['Papel', 'Plástico', 'Vidrio'].includes(t.name));
+                console.log("Modo Móvil: Usando 3 tachos para mejor visibilidad.");
+            } else {
+                // Modo Escritorio: Usamos 4 tachos (Papel, Plástico, Vidrio, Orgánico)
+                this.itemTypes = this.allItemTypes.filter(t => ['Papel', 'Plástico', 'Vidrio', 'Orgánico'].includes(t.name));
+                console.log("Modo Escritorio: Usando 4 tachos.");
+            }
+            // FIN LÓGICA DE ADAPTACIÓN
 
-            // [resto de las funciones sin cambios, como resizeCanvas, start, etc.]
-            // Se han omitido aquí por brevedad, pero en tu archivo final, las mantienes.
-            resizeCanvas() {
-                const container = this.canvas.parentElement;
-                const size = Math.min(container.clientWidth, 450);
-                this.canvas.width = size;
-                this.canvas.height = size;
-                this.initBins();
-                this.draw();
-            }
+            this.correctSound = new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.4 }
+            }).toDestination();
+            this.incorrectSound = new Tone.Synth({
+                oscillator: { type: 'square' },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0.01, release: 0.2 }
+            }).toDestination();
+            
+            this.resizeCanvas = this.resizeCanvas.bind(this);
+            this.gameLoop = this.gameLoop.bind(this);
+            
+            // Bind unified event handlers
+            this.handleStart = this.handleStart.bind(this);
+            this.handleMove = this.handleMove.bind(this);
+            this.handleEnd = this.handleEnd.bind(this);
 
-            start() {
-                this.score = parseInt(localStorage.getItem('currentScore')) || 0;
-                this.lives = 5;
-                this.timer = 60;
-                this.gameOver = false;
-                this.items = [];
-                this.spawnTimer = 0;
-                this.lastTime = performance.now();
-                this.paused = false;
-                
-                this.toggleIconEl.classList.remove('fa-play');
-                this.toggleIconEl.classList.add('fa-pause');
-                this.toggleTextEl.textContent = 'Pausar';
-                
-                this.scoreEl.textContent = `Puntos: ${this.score}`;
-                this.livesEl.textContent = `Vidas: ${'❤️'.repeat(this.lives)}`;
-                this.timerEl.textContent = `Tiempo: ${this.timer}`;
-                this.messageBoxEl.style.display = 'none';
-                
-                this.resizeCanvas();
-                
-                if (this.frameId) {
-                    cancelAnimationFrame(this.frameId);
-                }
-                this.gameLoop(this.lastTime);
-            }
+            this.restartButtonEl.addEventListener('click', () => this.restart());
+            this.toggleButtonEl.addEventListener('click', () => this.togglePause());
+            this.returnButtonEl.addEventListener('click', () => this.returnToHome());
+            this.backGameButtonEl.addEventListener('click', () => this.returnToHome());
+            
+            this.addEventListeners();
+        }
 
-            restart() {
-                // Reinicia el puntaje tanto en memoria como en localStorage
-                localStorage.setItem('currentScore', '0');
-                this.start();
-            }
+        addEventListeners() {
+            // Remove old listeners to prevent duplication
+            this.canvas.removeEventListener('mousedown', this.handleStart);
+            this.canvas.removeEventListener('mousemove', this.handleMove);
+            this.canvas.removeEventListener('mouseup', this.handleEnd);
+            this.canvas.removeEventListener('touchstart', this.handleStart);
+            this.canvas.removeEventListener('touchmove', this.handleMove);
+            this.canvas.removeEventListener('touchend', this.handleEnd);
 
-            // Guarda el puntaje en localStorage antes de regresar
-            returnToHome() {
-                if (this.frameId) {
-                    cancelAnimationFrame(this.frameId);
-                }
-                // Guarda el puntaje actual en localStorage
-                localStorage.setItem('currentScore', this.score.toString());
-                // Por razones de seguridad, es mejor no redirigir a URLs externas
-                // window.location.href = "home.html";
-                // En su lugar, podemos mostrar un mensaje
-                this.messageTitleEl.textContent = "Volverás pronto";
-                this.messageTextEl.textContent = `Puntuación guardada: ${this.score}.`;
-                this.messageBoxEl.style.display = 'flex';
-                this.returnButtonEl.style.display = 'none';
-            }
+            // Add unified listeners
+            this.canvas.addEventListener('mousedown', this.handleStart);
+            this.canvas.addEventListener('mousemove', this.handleMove);
+            this.canvas.addEventListener('mouseup', this.handleEnd);
+            this.canvas.addEventListener('touchstart', this.handleStart);
+            this.canvas.addEventListener('touchmove', this.handleMove);
+            this.canvas.addEventListener('touchend', this.handleEnd);
+        }
 
-            togglePause() {
-                this.paused = !this.paused;
-                if (this.paused) {
-                    this.toggleIconEl.classList.remove('fa-pause');
-                    this.toggleIconEl.classList.add('fa-play');
-                    this.toggleTextEl.textContent = 'Reanudar';
-                } else {
-                    this.toggleIconEl.classList.remove('fa-play');
-                    this.toggleIconEl.classList.add('fa-pause');
-                    this.toggleTextEl.textContent = 'Pausar';
-                    this.lastTime = performance.now();
-                    this.gameLoop(this.lastTime);
-                }
-            }
+        getPointerPosition(e) {
+            const rect = this.canvas.getBoundingClientRect();
+            let clientX, clientY;
 
-            initBins() {
-                this.bins = [];
-                const binWidth = this.canvas.width / this.itemTypes.length - 15;
-                const binHeight = this.canvas.height / 5;
-                const binY = this.canvas.height - binHeight - 20;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            return {
+                x: (clientX - rect.left) * (this.canvas.width / rect.width),
+                y: (clientY - rect.top) * (this.canvas.height / rect.height)
+            };
+        }
 
-                this.itemTypes.forEach((type, index) => {
-                    const binImage = new Image();
-                    binImage.src = type.binSrc;
-                    binImage.onerror = () => { console.error(`Error loading image: ${type.binSrc}`); };
-                    this.bins.push({
-                        x: (index + 0.5) * (binWidth + 15) - binWidth / 2,
-                        y: binY,
-                        width: binWidth,
-                        height: binHeight,
-                        type: type.type,
-                        name: type.name,
-                        image: binImage
-                    });
-                });
-            }
+        handleStart(e) {
+            e.preventDefault();
+            if (this.gameOver || this.paused) return;
+            const pos = this.getPointerPosition(e);
+            for (let i = this.items.length - 1; i >= 0; i--) {
+                const item = this.items[i];
+                if (Math.abs(pos.x - item.x) < 30 && Math.abs(pos.y - item.y) < 30) {
+                    this.isDragging = true;
+                    this.draggedItem = item;
+                    this.items = this.items.filter(i => i !== item);
+                    this.items.push(item);
+                    return;
+                }
+            }
+        }
 
-            spawnItem() {
-                const randomType = this.itemTypes[Math.floor(Math.random() * this.itemTypes.length)];
-                const speed = 0.5 + this.score / 200;
-                this.items.push({
-                    x: Math.random() * (this.canvas.width - 60) + 30,
-                    y: -30,
-                    icon: randomType.icon,
-                    type: randomType.type,
-                    speed: speed,
-                    isDragging: false
-                });
-            }
+        handleMove(e) {
+            e.preventDefault();
+            if (!this.isDragging || !this.draggedItem) return;
+            const pos = this.getPointerPosition(e);
+            this.draggedItem.x = pos.x;
+            this.draggedItem.y = pos.y;
+        }
 
-            draw() {
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                this.bins.forEach(bin => {
-                    this.ctx.drawImage(bin.image, bin.x, bin.y, bin.width, bin.height);
-                    this.ctx.fillStyle = '#fff';
-                    this.ctx.font = 'bold 16px Raleway';
-                    this.ctx.textAlign = 'center';
-                    this.ctx.fillText(bin.name, bin.x + bin.width / 2, bin.y + bin.height + 20);
-                });
+        handleEnd(e) {
+            if (!this.draggedItem) return;
+            
+            const pos = this.getPointerPosition(e);
+            this.draggedItem.x = pos.x;
+            this.draggedItem.y = pos.y;
+            
+            let placedCorrectly = false;
+            for (const bin of this.bins) {
+                // Ajuste Colisión X: El centro del ítem debe estar 10px dentro del tacho
+                const xCollision = this.draggedItem.x > bin.x + 10 && this.draggedItem.x < bin.x + bin.width - 10;
+                
+                // Ajuste Colisión Y: El centro del ítem debe estar en la mitad superior del tacho para "caer dentro"
+                const yCollision = this.draggedItem.y > bin.y && this.draggedItem.y < bin.y + (bin.height / 2);
 
-                this.items.forEach(item => {
-                    this.ctx.font = '30px Raleway';
-                    this.ctx.textAlign = 'center';
-                    this.ctx.fillText(item.icon, item.x, item.y);
-                });
-            }
+                if (xCollision && yCollision) {
+                    if (this.draggedItem.type === bin.type) {
+                        this.score += 10;
+                        placedCorrectly = true;
+                        this.correctSound.triggerAttackRelease('C5', '8n');
+                    } else {
+                        this.lives -= 1;
+                        this.canvas.classList.add('flash-red');
+                        setTimeout(() => this.canvas.classList.remove('flash-red'), 500);
+                        this.incorrectSound.triggerAttackRelease('C3', '8n');
+                    }
+                    // El objeto se elimina de la lista si colisionó
+                    this.items = this.items.filter(item => item !== this.draggedItem);
+                    break;
+                }
+            }
+            // Reiniciar las banderas SIEMPRE, para que no se quede "trabado" si se suelta fuera
+            this.isDragging = false;
+            this.draggedItem = null;
+        }
 
-            update(deltaTime) {
-                this.spawnTimer += deltaTime;
-                const spawnInterval = 2000 - Math.min(this.score * 5, 1500);
-                if (this.spawnTimer > spawnInterval) {
-                    this.spawnItem();
-                    this.spawnTimer = 0;
-                }
-                
-                this.timer -= deltaTime / 1000;
+        // ** FUNCIÓN DE INICIALIZACIÓN DE TACHOS DINÁMICA **
+        initBins() {
+            this.bins = [];
+            
+            // Calculamos el ancho del tacho basado en cuántos tenemos
+            const numBins = this.itemTypes.length;
+            const padding = 10; // Espacio entre tachos
+            const binWidth = (this.canvas.width - (numBins + 1) * padding) / numBins;
+            const binHeight = this.canvas.height / 5;
+            const binY = this.canvas.height - binHeight - 20;
 
-                this.items.forEach(item => {
-                    if (!this.isDragging || item !== this.draggedItem) {
-                        item.y += item.speed * deltaTime / 16.67;
-                    }
-                });
+            this.itemTypes.forEach((type, index) => {
+                const binImage = new Image();
+                // Usamos el 'name' como referencia de tipo para colisión
+                binImage.src = type.binSrc; 
+                binImage.onerror = () => { console.error(`Error loading image: ${type.binSrc}`); };
+                
+                // Calculamos la posición X para que estén centrados
+                const totalWidth = numBins * binWidth + (numBins - 1) * padding;
+                const startX = (this.canvas.width - totalWidth) / 2;
+                
+                this.bins.push({
+                    x: startX + index * (binWidth + padding),
+                    y: binY,
+                    width: binWidth,
+                    height: binHeight,
+                    type: type.name, // Usamos el nombre del ítem (e.g., "Papel")
+                    name: type.name,
+                    image: binImage
+                });
+            });
+        }
+        
+        // ** FUNCIÓN DE CAMBIO DE TAMAÑO ADAPTATIVA **
+        resizeCanvas() {
+            const container = this.canvas.parentElement.parentElement; // game-wrapper div
+            // El canvas tendrá como máximo el 95% del ancho de la ventana o 600px
+            const newWidth = Math.min(window.innerWidth * 0.95, 600); 
+            this.canvas.style.maxWidth = `${newWidth}px`;
+            
+            // Asignamos un tamaño interno fijo para el renderizado (ej: 4:3)
+            this.canvas.width = 450; 
+            this.canvas.height = 450 * 0.8; // Ratio 450x360 
+            
+            // Volvemos a inicializar los tachos para re-calcular su posición y cantidad
+            this.isMobile = this.canvas.width < 600; // La lógica de isMobile se mantiene aquí para el constructor
+            
+            // Re-ejecutamos la lógica del constructor para re-evaluar itemTypes y bins
+            this.constructor(
+                this.canvas, this.scoreEl, this.livesEl, this.timerEl, 
+                this.messageBoxEl, this.messageTitleEl, this.messageTextEl, 
+                this.restartButtonEl, this.toggleButtonEl, this.toggleIconEl, 
+                this.toggleTextEl, this.returnButtonEl, this.backGameButtonEl
+            );
 
-                this.items = this.items.filter(item => {
-                    if (item.y > this.canvas.height + 20) {
-                        this.lives -= 1;
-                        this.incorrectSound.triggerAttackRelease('C3', '8n');
-                        this.canvas.classList.add('flash-red');
-                        setTimeout(() => this.canvas.classList.remove('flash-red'), 500);
-                        return false;
-                    }
-                    return true;
-                });
+            this.initBins();
+            this.draw();
+        }
 
-                this.scoreEl.textContent = `Puntos: ${this.score}`;
-                this.livesEl.textContent = `Vidas: ${'❤️'.repeat(Math.max(0, this.lives))}`;
-                this.timerEl.textContent = `Tiempo: ${Math.max(0, Math.floor(this.timer))}`;
-                
-                if (this.lives <= 0 || this.timer <= 0) this.gameOver = true;
-            }
+        spawnItem() {
+            // Usamos itemTypes, que ya está filtrado por la lógica de adaptación
+            const randomType = this.itemTypes[Math.floor(Math.random() * this.itemTypes.length)];
+            const speed = 0.5 + this.score / 200;
+            this.items.push({
+                x: Math.random() * (this.canvas.width - 60) + 30,
+                y: -30,
+                icon: randomType.icon,
+                type: randomType.name, // Usamos el nombre del ítem (e.g., "Papel")
+                speed: speed,
+                isDragging: false
+            });
+        }
 
-            gameLoop(currentTime) {
-                if (this.gameOver) {
-                    this.messageTitleEl.textContent = "¡Juego Terminado!";
-                    this.messageTextEl.textContent = `¡Has conseguido ${this.score} puntos!`;
-                    this.messageBoxEl.style.display = 'flex';
-                    return;
-                }
-                
-                if (this.paused) {
-                    return;
-                }
-                
-                const deltaTime = currentTime - this.lastTime;
-                this.lastTime = currentTime;
-                this.update(deltaTime);
-                this.draw();
-                this.frameId = requestAnimationFrame(this.gameLoop.bind(this));
-            }
-        }
-        
-        window.onload = function() {
-            const canvas = document.getElementById('gameCanvas');
-            const gameScoreEl = document.getElementById('gameScore');
-            const gameLivesEl = document.getElementById('gameLives');
-            const gameTimerEl = document.getElementById('gameTimer');
-            const messageBoxEl = document.getElementById('messageBox');
-            const messageTitleEl = document.getElementById('messageTitle');
-            const messageTextEl = document.getElementById('messageText');
-            const restartButtonEl = document.getElementById('restartButton');
-            const toggleButtonEl = document.getElementById('toggleButton');
-            const toggleIconEl = document.getElementById('toggleIcon');
-            const toggleTextEl = document.getElementById('toggleText');
-            const restartGameButtonEl = document.getElementById('restartGameButton');
-            const returnButtonEl = document.getElementById('returnButton');
-            const backGameButtonEl = document.getElementById('backGameButton');
+        draw() {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            this.bins.forEach(bin => {
+                this.ctx.drawImage(bin.image, bin.x, bin.y, bin.width, bin.height);
+                this.ctx.fillStyle = '#fff';
+                // El tamaño del texto también se adapta al ancho del tacho
+                this.ctx.font = `bold ${Math.max(12, bin.width / 8)}px Raleway`; 
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(bin.name, bin.x + bin.width / 2, bin.y + bin.height + 20);
+            });
 
-            const game = new RecyclingGame(canvas, gameScoreEl, gameLivesEl, gameTimerEl, messageBoxEl, messageTitleEl, messageTextEl, restartButtonEl, toggleButtonEl, toggleIconEl, toggleTextEl, returnButtonEl, backGameButtonEl);
-            window.addEventListener('resize', game.resizeCanvas);
-            game.start();
+            this.items.forEach(item => {
+                this.ctx.font = '30px Raleway';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(item.icon, item.x, item.y);
+            });
+        }
 
-            restartGameButtonEl.addEventListener('click', () => game.restart());
-        };
-    </script>
+        update(deltaTime) {
+            this.spawnTimer += deltaTime;
+            const spawnInterval = 2000 - Math.min(this.score * 5, 1500);
+            if (this.spawnTimer > spawnInterval) {
+                this.spawnItem();
+                this.spawnTimer = 0;
+            }
+            
+            this.timer -= deltaTime / 1000;
+
+            this.items.forEach(item => {
+                if (!this.isDragging || item !== this.draggedItem) {
+                    item.y += item.speed * deltaTime / 16.67;
+                }
+            });
+
+            this.items = this.items.filter(item => {
+                if (item.y > this.canvas.height + 20) {
+                    this.lives -= 1;
+                    this.incorrectSound.triggerAttackRelease('C3', '8n');
+                    this.canvas.classList.add('flash-red');
+                    setTimeout(() => this.canvas.classList.remove('flash-red'), 500);
+                    return false;
+                }
+                return true;
+            });
+
+            this.scoreEl.textContent = `Puntos: ${this.score}`;
+            this.livesEl.textContent = `Vidas: ${'❤️'.repeat(Math.max(0, this.lives))}`;
+            this.timerEl.textContent = `Tiempo: ${Math.max(0, Math.floor(this.timer))}`;
+            
+            if (this.lives <= 0 || this.timer <= 0) this.gameOver = true;
+        }
+
+        gameLoop(currentTime) {
+            if (this.gameOver) {
+                this.messageTitleEl.textContent = "¡Juego Terminado!";
+                this.messageTextEl.textContent = `¡Has conseguido ${this.score} puntos!`;
+                this.messageBoxEl.style.display = 'flex';
+                return;
+            }
+            
+            if (this.paused) {
+                return;
+            }
+            
+            const deltaTime = currentTime - this.lastTime;
+            this.lastTime = currentTime;
+            this.update(deltaTime);
+            this.draw();
+            this.frameId = requestAnimationFrame(this.gameLoop.bind(this));
+        }
+
+        start() {
+            this.score = parseInt(localStorage.getItem('currentScore')) || 0;
+            this.lives = 5;
+            this.timer = 60;
+            this.gameOver = false;
+            this.items = [];
+            this.spawnTimer = 0;
+            this.lastTime = performance.now();
+            this.paused = false;
+            
+            this.toggleIconEl.classList.remove('fa-play');
+            this.toggleIconEl.classList.add('fa-pause');
+            this.toggleTextEl.textContent = 'Pausar';
+            
+            this.scoreEl.textContent = `Puntos: ${this.score}`;
+            this.livesEl.textContent = `Vidas: ${'❤️'.repeat(this.lives)}`;
+            this.timerEl.textContent = `Tiempo: ${this.timer}`;
+            this.messageBoxEl.style.display = 'none';
+            
+            // Llama a resizeCanvas para inicializar el tamaño y los bins
+            this.resizeCanvas(); 
+            
+            if (this.frameId) {
+                cancelAnimationFrame(this.frameId);
+            }
+            this.gameLoop(this.lastTime);
+        }
+
+        restart() {
+            localStorage.setItem('currentScore', '0');
+            this.start();
+        }
+
+        returnToHome() {
+            if (this.frameId) {
+                cancelAnimationFrame(this.frameId);
+            }
+            localStorage.setItem('currentScore', this.score.toString());
+            this.messageTitleEl.textContent = "Volverás pronto";
+            this.messageTextEl.textContent = `Puntuación guardada: ${this.score}.`;
+            this.messageBoxEl.style.display = 'flex';
+            this.returnButtonEl.style.display = 'none';
+        }
+
+        togglePause() {
+            this.paused = !this.paused;
+            if (this.paused) {
+                this.toggleIconEl.classList.remove('fa-pause');
+                this.toggleIconEl.classList.add('fa-play');
+                this.toggleTextEl.textContent = 'Reanudar';
+            } else {
+                this.toggleIconEl.classList.remove('fa-play');
+                this.toggleIconEl.classList.add('fa-pause');
+                this.toggleTextEl.textContent = 'Pausar';
+                this.lastTime = performance.now();
+                this.gameLoop(this.lastTime);
+            }
+        }
+    }
+    
+    window.onload = function() {
+        const canvas = document.getElementById('gameCanvas');
+        const gameScoreEl = document.getElementById('gameScore');
+        const gameLivesEl = document.getElementById('gameLives');
+        const gameTimerEl = document.getElementById('gameTimer');
+        const messageBoxEl = document.getElementById('messageBox');
+        const messageTitleEl = document.getElementById('messageTitle');
+        const messageTextEl = document.getElementById('messageText');
+        const restartButtonEl = document.getElementById('restartButton');
+        const toggleButtonEl = document.getElementById('toggleButton');
+        const toggleIconEl = document.getElementById('toggleIcon');
+        const toggleTextEl = document.getElementById('toggleText');
+        const restartGameButtonEl = document.getElementById('restartGameButton');
+        const returnButtonEl = document.getElementById('returnButton');
+        const backGameButtonEl = document.getElementById('backGameButton');
+
+        // Inicializamos el juego. Los tamaños y tachos se ajustarán en game.start()
+        const game = new RecyclingGame(canvas, gameScoreEl, gameLivesEl, gameTimerEl, messageBoxEl, messageTitleEl, messageTextEl, restartButtonEl, toggleButtonEl, toggleIconEl, toggleTextEl, returnButtonEl, backGameButtonEl);
+        
+        // El listener de resize llama a game.resizeCanvas, que es la lógica adaptativa
+        window.addEventListener('resize', game.resizeCanvas);
+        
+        game.start();
+
+        restartGameButtonEl.addEventListener('click', () => game.restart());
+    };
+</script>
 </body>
 </html>
