@@ -129,24 +129,6 @@
             </div>
         </div>
     </div>
-
-   ¡Entendido! Vamos a implementar las correcciones de diseño adaptativo (responsive) y la mejora en la lógica del constructor y window.onload para que el juego se ajuste automáticamente en móviles (reduciendo a 3 tachos) y se vea bien en escritorio.
-
-Aquí tienes el código JavaScript completo y corregido que debes usar para reemplazar el contenido de tu etiqueta <script> al final del HTML.
-
-Código JavaScript Adaptativo Corregido
-Este código incluye:
-
-Lógica window.onload y resizeCanvas adaptativa: Ajusta el tamaño real del canvas en función del ancho de la ventana.
-
-Lógica del constructor adaptativa: Detecta si es móvil (this.canvas.width < 600) y ajusta el número de tachos y tipos de ítems (this.bins, this.itemTypes) a 3, para que no estén apretados.
-
-Lógica initBins dinámica: Calcula el tamaño y la posición de los tachos basándose en cuántos haya para que se distribuyan uniformemente.
-
-Reemplaza TODO el contenido de tu etiqueta <script> (desde class RecyclingGame { ... } hasta el final) con este nuevo código:
-
-JavaScript
-
 <script>
     class RecyclingGame {
         constructor(canvas, scoreEl, livesEl, timerEl, messageBoxEl, messageTitleEl, messageTextEl, restartButtonEl, toggleButtonEl, toggleIconEl, toggleTextEl, returnButtonEl, backGameButtonEl) {
@@ -558,5 +540,7 @@ JavaScript
         restartGameButtonEl.addEventListener('click', () => game.restart());
     };
 </script>
+
+
 </body>
 </html>
